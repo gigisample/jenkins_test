@@ -1,41 +1,28 @@
 pipeline {
     agent any
+    parameters {
+        extendedChoice(
+            name: 'DYNAMIC_OPTION',
+            description: 'Choose an option from the file',
+            type: 'PT_SINGLE_SELECT',
+            value: getChoices('/var/jenkins_home/choices.txt'),
+            editable: true // ユーザーが自由に入力できる場合はtrue
+        )
+    }
     stages {
-        stage('Setup Parameters') {
+        stage('Display Selected Option') {
             steps {
-                script {
-                    properties([
-                        parameters([
-                            [$class: 'ExtensibleChoiceParameterDefinition',
-                                name: 'GIT_BRANCH',
-                                description: 'Gitブランチを選択してください',
-                                choiceListProvider: [
-                                    $class: 'SystemGroovyChoiceListProvider',
-                                    script: [
-                                        script: '''
-                                            // Gitリポジトリからブランチ名を取得するスクリプト
-                                            def process = ['git', 'ls-remote', '--heads', 'https://github.com/gigisample/jenkins_test.git'].execute()
-                                            process.waitFor()
-                                            if (process.exitValue() == 0) {
-                                                def branches = process.in.text.readLines()
-                                                return branches.collect { it.split()[1].replace('refs/heads/', '') }
-                                            } else {
-                                                return ["Error fetching branches"]
-                                            }
-                                        ''',
-                                        sandbox: false
-                                    ]
-                                ]
-                            ]
-                        ])
-                    ])
-                }
-            }
-        }
-        stage('Use Selected Branch') {
-            steps {
-                echo "選択されたブランチ: ${params.GIT_BRANCH}"
+                echo "Selected option: ${params.DYNAMIC_OPTION}"
             }
         }
     }
+}
+
+// 外部ファイルから選択肢を取得
+def getChoices(filePath) {
+    def file = new File(filePath)
+    if (!file.exists()) {
+        return "Error: File not found" // ファイルが見つからない場合のデフォルト値
+    }
+    return file.readLines().join(',') // Extensible Choiceではカンマ区切りで選択肢を指定
 }

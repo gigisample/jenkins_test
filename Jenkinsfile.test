@@ -14,7 +14,7 @@ pipeline {
                                     script: [
                                         script: '''
                                             // Gitリポジトリからブランチ名を取得するスクリプト
-                                            def process = ['git', 'ls-remote', '--heads', 'https://github.com/your-repo/your-project.git'].execute()
+                                            def process = ['git', 'ls-remote', '--heads', 'https://github.com/gigisample/jenkins_test.git'].execute()
                                             process.waitFor()
                                             if (process.exitValue() == 0) {
                                                 def branches = process.in.text.readLines()

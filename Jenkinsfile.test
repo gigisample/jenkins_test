@@ -5,8 +5,7 @@ pipeline {
             name: 'DYNAMIC_OPTION',
             description: 'Choose an option from the file',
             type: 'PT_SINGLE_SELECT',
-            value: getChoices('/var/jenkins_home/choices.txt'),
-            editable: true // ユーザーが自由に入力できる場合はtrue
+            value: getChoices('/var/jenkins_home/choices.txt')
         )
     }
     stages {

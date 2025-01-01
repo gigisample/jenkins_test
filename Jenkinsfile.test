@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+    stages {
+        stage('Setup Parameters') {
+            steps {
+                script {
+                    properties([
+                        parameters([
+                            [$class: 'ExtensibleChoiceParameterDefinition',
+                                name: 'GIT_BRANCH',
+                                description: 'Gitブランチを選択してください',
+                                choiceListProvider: [
+                                    $class: 'SystemGroovyChoiceListProvider',
+                                    script: [
+                                        script: '''
+                                            // Gitリポジトリからブランチ名を取得するスクリプト
+                                            def process = ['git', 'ls-remote', '--heads', 'https://github.com/your-repo/your-project.git'].execute()
+                                            process.waitFor()
+                                            if (process.exitValue() == 0) {
+                                                def branches = process.in.text.readLines()
+                                                return branches.collect { it.split()[1].replace('refs/heads/', '') }
+                                            } else {
+                                                return ["Error fetching branches"]
+                                            }
+                                        ''',
+                                        sandbox: false
+                                    ]
+                                ]
+                            ]
+                        ])
+                    ])
+                }
+            }
+        }
+        stage('Use Selected Branch') {
+            steps {
+                echo "選択されたブランチ: ${params.GIT_BRANCH}"
+            }
+        }
+    }
+}

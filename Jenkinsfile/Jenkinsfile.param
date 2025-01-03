@@ -32,15 +32,17 @@ pipeline {
         stage('Update Node List') {
             steps {
                 script {
-                    sh "git fetch --all"
-                    def nodeListFiles = sh(script: """
-                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "Jenkinsfile/node_list.txt" || true
-                    """, returnStdout: true).trim()
-                    if (nodeListFiles) {
-                        writeFile file: "node_list_files.txt", text: nodeListFiles
-                        echo "Node list updated:\n${nodeListFiles}"
-                    } else {
-                        echo "No node_list.txt found."
+                    withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                        sh "git fetch --all --no-tags --progress https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}"
+                        def nodeListFiles = sh(script: """
+                            git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "Jenkinsfile/node_list.txt" || true
+                        """, returnStdout: true).trim()
+                        if (nodeListFiles) {
+                            writeFile file: "node_list_files.txt", text: nodeListFiles
+                            echo "Node list updated:\n${nodeListFiles}"
+                        } else {
+                            echo "No node_list.txt found."
+                        }
                     }
                 }
             }
@@ -48,15 +50,17 @@ pipeline {
         stage('Update Branch List') {
             steps {
                 script {
-                    sh "git fetch --all"
-                    def branches = sh(script: """
-                        git branch -r | sed "s|origin/||" | grep -v "HEAD"
-                    """, returnStdout: true).trim()
-                    if (branches) {
-                        writeFile file: "branches.txt", text: branches
-                        echo "Branch list updated:\n${branches}"
-                    } else {
-                        echo "No branches found."
+                    withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                        sh "git fetch --all --no-tags --progress https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}"
+                        def branches = sh(script: """
+                            git branch -r | sed "s|origin/||" | grep -v "HEAD"
+                        """, returnStdout: true).trim()
+                        if (branches) {
+                            writeFile file: "branches.txt", text: branches
+                            echo "Branch list updated:\n${branches}"
+                        } else {
+                            echo "No branches found."
+                        }
                     }
                 }
             }
@@ -64,15 +68,17 @@ pipeline {
         stage('Update Python File List') {
             steps {
                 script {
-                    sh "git fetch --all"
-                    def pyFiles = sh(script: """
-                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true
-                    """, returnStdout: true).trim()
-                    if (pyFiles) {
-                        writeFile file: "python_files.txt", text: pyFiles
-                        echo "Python file list updated:\n${pyFiles}"
-                    } else {
-                        echo "No Python files found."
+                    withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                        sh "git fetch --all --no-tags --progress https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}"
+                        def pyFiles = sh(script: """
+                            git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true
+                        """, returnStdout: true).trim()
+                        if (pyFiles) {
+                            writeFile file: "python_files.txt", text: pyFiles
+                            echo "Python file list updated:\n${pyFiles}"
+                        } else {
+                            echo "No Python files found."
+                        }
                     }
                 }
             }

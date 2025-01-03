@@ -1,47 +1,60 @@
 pipeline {
     agent any
     environment {
-        GIT_REPO = 'https://github.com/gigisample/jenkins_test.git'
+        GIT_REPO = scm.getUserRemoteConfigs()[0].getUrl() // リポジトリURLを取得
+        CREDS_ID = scm.getUserRemoteConfigs()[0].getCredentialsId() // credentialsIdを取得
     }
     stages {
+        stage('SCM Checkout') {
+            steps {
+                script {
+                    checkout(scm)
+                    echo "SCM Checkout completed."
+                }
+            }
+        }
         stage('Update Node List') {
             steps {
                 script {
-                    checkout([$class: 'GitSCM',
-                              branches: [[name: 'main']],
-                              userRemoteConfigs: [[url: env.GIT_REPO]],
-                              extensions: [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'node_list.txt']]]]])
-                    writeFile file: "nodes.txt", text: readFile('node_list.txt')
-                    echo "Node list updated."
+                    // node_list ファイル一覧を取得
+                    def nodeFiles = sh(script: """
+                        git ls-tree --name-only -r main | grep 'node_list.txt'
+                    """, returnStdout: true).trim()
+                    writeFile file: "node_list_files.txt", text: nodeFiles
+                    echo "Node list files updated:\n${nodeFiles}"
                 }
             }
         }
         stage('Update Branch List') {
             steps {
                 script {
-                    def branches = sh(script: "git ls-remote --heads ${env.GIT_REPO} | awk '{print \$2}' | sed 's|refs/heads/||'", returnStdout: true).trim()
-                    writeFile file: "branches.txt", text: branches
-                    echo "Branch list updated."
+                    withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                        // ブランチリストを取得
+                        def branches = sh(script: """
+                            git ls-remote --heads ${GIT_REPO.replace('https://', 'https://${GIT_USER}:${GIT_TOKEN}@')} \
+                            | awk '{print \$2}' | sed 's|refs/heads/||'
+                        """, returnStdout: true).trim()
+                        writeFile file: "branches.txt", text: branches
+                        echo "Branch list updated:\n${branches}"
+                    }
                 }
             }
         }
         stage('Update Python File List') {
             steps {
                 script {
-                    checkout([$class: 'GitSCM',
-                              branches: [[name: 'main']],
-                              userRemoteConfigs: [[url: env.GIT_REPO]],
-                              extensions: [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'scripts/']]]]])
-                    def files = sh(script: "find scripts/ -type f", returnStdout: true).trim()
-                    writeFile file: "python_files.txt", text: files
-                    echo "Python file list updated."
+                    // Pythonファイルリストを取得
+                    def pyFiles = sh(script: """
+                        git ls-tree --name-only -r main | grep '.py'
+                    """, returnStdout: true).trim()
+                    writeFile file: "python_files.txt", text: pyFiles
+                    echo "Python file list updated:\n${pyFiles}"
                 }
             }
         }
     }
     post {
         always {
-            // アーティファクトとして保存
             archiveArtifacts artifacts: '*.txt', fingerprint: true
         }
     }

@@ -3,7 +3,7 @@ pipeline {
     environment {
         GIT_REPO = scm.getUserRemoteConfigs()[0].getUrl() // リポジトリURLを取得
         CREDS_ID = scm.getUserRemoteConfigs()[0].getCredentialsId() // credentialsIdを取得
-        DEFAULT_BRANCH = 'master' // デフォルトブランチ名を明示的に指定
+        DEFAULT_BRANCH = 'main' // デフォルトブランチ名を明示的に指定
     }
     stages {
         stage('SCM Checkout') {
@@ -18,7 +18,7 @@ pipeline {
             steps {
                 script {
                     def nodeListFiles = sh(script: """
-                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep 'node_list.txt' || true
+                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep 'Jenkinsfile/node_list.txt' || true
                     """, returnStdout: true).trim()
                     if (nodeListFiles) {
                         writeFile file: "node_list_files.txt", text: nodeListFiles
@@ -44,7 +44,7 @@ pipeline {
             steps {
                 script {
                     def pyFiles = sh(script: """
-                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep '.py' || true
+                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep 'src/testcase/*.py' || true
                     """, returnStdout: true).trim()
                     if (pyFiles) {
                         writeFile file: "python_files.txt", text: pyFiles

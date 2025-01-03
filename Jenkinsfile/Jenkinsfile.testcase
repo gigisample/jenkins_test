@@ -78,7 +78,8 @@ pipeline {
 // ファイルを読み込む、存在しない場合は空文字列を返す
 def getFileContentOrDefault(filePath) {
     try {
-        return readFileFromWorkspace(filePath).trim()
+        // ワークスペースからファイルを読み取る
+        return readFile(filePath).trim()
     } catch (Exception e) {
         return '' // ファイルが存在しない場合、空の選択肢を返す
     }

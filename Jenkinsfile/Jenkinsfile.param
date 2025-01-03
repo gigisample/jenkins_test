@@ -33,7 +33,10 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-                        sh "git fetch --all --no-tags --progress https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}"
+                        sh """
+                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
+                            git fetch origin
+                        """
                         def nodeListFiles = sh(script: """
                             git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "Jenkinsfile/node_list.txt" || true
                         """, returnStdout: true).trim()
@@ -51,7 +54,10 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-                        sh "git fetch --all --no-tags --progress https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}"
+                        sh """
+                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
+                            git fetch origin
+                        """
                         def branches = sh(script: """
                             git branch -r | sed "s|origin/||" | grep -v "HEAD"
                         """, returnStdout: true).trim()
@@ -69,7 +75,10 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-                        sh "git fetch --all --no-tags --progress https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}"
+                        sh """
+                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
+                            git fetch origin
+                        """
                         def pyFiles = sh(script: """
                             git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true
                         """, returnStdout: true).trim()

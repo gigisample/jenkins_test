@@ -8,7 +8,7 @@ pipeline {
         stage('Get Default Branch') {
             steps {
                 script {
-                    // 認証情報を使ってデフォルトブランチを取得
+                    // デフォルトブランチを取得
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         env.DEFAULT_BRANCH = sh(script: """
                             git ls-remote --symref https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')} HEAD \
@@ -25,6 +25,7 @@ pipeline {
         stage('SCM Checkout') {
             steps {
                 script {
+                    // リポジトリをチェックアウト
                     checkout(scm)
                     echo "SCM Checkout completed."
                 }
@@ -33,22 +34,22 @@ pipeline {
         stage('Update Node List') {
             steps {
                 script {
-                    // リモートURLの設定とノードリストの取得
+                    // ノードリストの内容を取得
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         sh """
                             git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
                             git fetch origin
                             git checkout ${env.DEFAULT_BRANCH}
                         """
-                        def nodeListFiles = sh(script: """
-                            git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "Jenkinsfile/node_list.txt" || true
+                        def nodeListContent = sh(script: """
+                            if [ -f Jenkinsfile/node_list.txt ]; then
+                                cat Jenkinsfile/node_list.txt
+                            else
+                                echo "No node list found."
+                            fi
                         """, returnStdout: true).trim()
-                        if (nodeListFiles) {
-                            writeFile file: "node_list_files.txt", text: nodeListFiles
-                            echo "Node list updated:\n${nodeListFiles}"
-                        } else {
-                            echo "No node_list.txt found."
-                        }
+                        writeFile file: "node_list_files.txt", text: nodeListContent // ノードリストの内容を保存
+                        echo "Node list updated:\n${nodeListContent}"
                     }
                 }
             }
@@ -56,21 +57,17 @@ pipeline {
         stage('Update Branch List') {
             steps {
                 script {
-                    // リモートブランチリストの取得
+                    // ブランチリストの取得と整形
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         sh """
                             git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
                             git fetch origin
                         """
                         def branches = sh(script: """
-                            git branch -r | sed "s|origin/||" | grep -v "HEAD"
+                            git branch -r | sed "s|origin/||" | grep -v "HEAD" | sed 's/^ *//;s/ *\$//'
                         """, returnStdout: true).trim()
-                        if (branches) {
-                            writeFile file: "branches.txt", text: branches
-                            echo "Branch list updated:\n${branches}"
-                        } else {
-                            echo "No branches found."
-                        }
+                        writeFile file: "branches.txt", text: branches // 整形済みのブランチリストを保存
+                        echo "Branch list updated:\n${branches}"
                     }
                 }
             }
@@ -88,12 +85,8 @@ pipeline {
                         def pyFiles = sh(script: """
                             git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true
                         """, returnStdout: true).trim()
-                        if (pyFiles) {
-                            writeFile file: "python_files.txt", text: pyFiles
-                            echo "Python file list updated:\n${pyFiles}"
-                        } else {
-                            echo "No Python files found."
-                        }
+                        writeFile file: "python_files.txt", text: pyFiles // Pythonファイルリストを保存
+                        echo "Python file list updated:\n${pyFiles}"
                     }
                 }
             }
@@ -101,7 +94,7 @@ pipeline {
     }
     post {
         always {
-            // 結果ファイルをアーカイブ
+            // 生成されたファイルをアーカイブ
             archiveArtifacts artifacts: '*.txt', fingerprint: true
         }
     }

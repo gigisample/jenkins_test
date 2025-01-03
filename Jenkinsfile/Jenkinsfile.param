@@ -8,13 +8,16 @@ pipeline {
         stage('Get Default Branch') {
             steps {
                 script {
-                    env.DEFAULT_BRANCH = sh(script: """
-                        git ls-remote --symref ${env.GIT_REPO} HEAD | grep "^ref:" | sed "s@^ref: refs/heads/@@;s@\\sHEAD\$@@"
-                    """, returnStdout: true).trim()
-                    if (!env.DEFAULT_BRANCH) {
-                        error "Failed to determine the default branch."
+                    withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
+                        env.DEFAULT_BRANCH = sh(script: """
+                            git ls-remote --symref https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')} HEAD \
+                            | grep "^ref:" | sed "s@^ref: refs/heads/@@;s@\\sHEAD@@"
+                        """, returnStdout: true).trim()
+                        if (!env.DEFAULT_BRANCH) {
+                            error "Failed to determine the default branch."
+                        }
+                        echo "Default branch is: ${env.DEFAULT_BRANCH}"
                     }
-                    echo "Default branch is: ${env.DEFAULT_BRANCH}"
                 }
             }
         }

@@ -3,6 +3,7 @@ pipeline {
     environment {
         GIT_REPO = scm.getUserRemoteConfigs()[0].getUrl() // リポジトリURLを取得
         CREDS_ID = scm.getUserRemoteConfigs()[0].getCredentialsId() // credentialsIdを取得
+        DEFAULT_BRANCH = 'master' // デフォルトブランチ名を明示的に指定
     }
     stages {
         stage('SCM Checkout') {
@@ -16,39 +17,41 @@ pipeline {
         stage('Update Node List') {
             steps {
                 script {
-                    // node_list ファイル一覧を取得
-                    def nodeFiles = sh(script: """
-                        git ls-tree --name-only -r main | grep 'node_list.txt'
+                    def nodeListFiles = sh(script: """
+                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep 'node_list.txt' || true
                     """, returnStdout: true).trim()
-                    writeFile file: "node_list_files.txt", text: nodeFiles
-                    echo "Node list files updated:\n${nodeFiles}"
+                    if (nodeListFiles) {
+                        writeFile file: "node_list_files.txt", text: nodeListFiles
+                        echo "Node list updated:\n${nodeListFiles}"
+                    } else {
+                        echo "No node_list.txt found."
+                    }
                 }
             }
         }
         stage('Update Branch List') {
             steps {
                 script {
-                    withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-                        // ブランチリストを取得
-                        def branches = sh(script: """
-                            git ls-remote --heads ${GIT_REPO.replace('https://', 'https://${GIT_USER}:${GIT_TOKEN}@')} \
-                            | awk '{print \$2}' | sed 's|refs/heads/||'
-                        """, returnStdout: true).trim()
-                        writeFile file: "branches.txt", text: branches
-                        echo "Branch list updated:\n${branches}"
-                    }
+                    def branches = sh(script: """
+                        git branch -r | sed 's|origin/||' | grep -v 'HEAD'
+                    """, returnStdout: true).trim()
+                    writeFile file: "branches.txt", text: branches
+                    echo "Branch list updated:\n${branches}"
                 }
             }
         }
         stage('Update Python File List') {
             steps {
                 script {
-                    // Pythonファイルリストを取得
                     def pyFiles = sh(script: """
-                        git ls-tree --name-only -r main | grep '.py'
+                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep '.py' || true
                     """, returnStdout: true).trim()
-                    writeFile file: "python_files.txt", text: pyFiles
-                    echo "Python file list updated:\n${pyFiles}"
+                    if (pyFiles) {
+                        writeFile file: "python_files.txt", text: pyFiles
+                        echo "Python file list updated:\n${pyFiles}"
+                    } else {
+                        echo "No Python files found."
+                    }
                 }
             }
         }

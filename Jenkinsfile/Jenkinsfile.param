@@ -3,9 +3,19 @@ pipeline {
     environment {
         GIT_REPO = scm.getUserRemoteConfigs()[0].getUrl() // リポジトリURLを取得
         CREDS_ID = scm.getUserRemoteConfigs()[0].getCredentialsId() // credentialsIdを取得
-        DEFAULT_BRANCH = 'main' // デフォルトブランチ名を明示的に指定
     }
     stages {
+        stage('Get Default Branch') {
+            steps {
+                script {
+                    // デフォルトブランチを動的に取得
+                    env.DEFAULT_BRANCH = sh(script: """
+                        git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'
+                    """, returnStdout: true).trim()
+                    echo "Default branch is: ${env.DEFAULT_BRANCH}"
+                }
+            }
+        }
         stage('SCM Checkout') {
             steps {
                 script {
@@ -35,8 +45,12 @@ pipeline {
                     def branches = sh(script: """
                         git branch -r | sed 's|origin/||' | grep -v 'HEAD'
                     """, returnStdout: true).trim()
-                    writeFile file: "branches.txt", text: branches
-                    echo "Branch list updated:\n${branches}"
+                    if (branches) {
+                        writeFile file: "branches.txt", text: branches
+                        echo "Branch list updated:\n${branches}"
+                    } else {
+                        echo "No branches found."
+                    }
                 }
             }
         }
@@ -44,7 +58,7 @@ pipeline {
             steps {
                 script {
                     def pyFiles = sh(script: """
-                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep 'src/testcase/*.py' || true
+                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep 'src/testcase/.*\\.py' || true
                     """, returnStdout: true).trim()
                     if (pyFiles) {
                         writeFile file: "python_files.txt", text: pyFiles

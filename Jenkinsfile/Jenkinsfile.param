@@ -2,21 +2,22 @@ pipeline {
     agent any
     environment {
         GIT_REPO = scm.getUserRemoteConfigs()[0].getUrl() // リポジトリURLを取得
-        CREDS_ID = scm.getUserRemoteConfigs()[0].getCredentialsId() // credentialsIdを取得
+        CREDS_ID = scm.getUserRemoteConfigs()[0].getCredentialsId() // Jenkinsに保存されている認証情報IDを取得
     }
     stages {
         stage('Get Default Branch') {
             steps {
                 script {
+                    // 認証情報を使ってリポジトリのデフォルトブランチを取得
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         env.DEFAULT_BRANCH = sh(script: """
                             git ls-remote --symref https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')} HEAD \
                             | grep "^ref:" | sed "s@^ref: refs/heads/@@;s@\\sHEAD@@"
                         """, returnStdout: true).trim()
                         if (!env.DEFAULT_BRANCH) {
-                            error "Failed to determine the default branch."
+                            error "Failed to determine the default branch." // デフォルトブランチが取得できなければエラー
                         }
-                        echo "Default branch is: ${env.DEFAULT_BRANCH}"
+                        echo "Default branch is: ${env.DEFAULT_BRANCH}" // デフォルトブランチ名を表示
                     }
                 }
             }
@@ -24,27 +25,30 @@ pipeline {
         stage('SCM Checkout') {
             steps {
                 script {
+                    // JenkinsのSCM機能でリポジトリをチェックアウト
                     checkout(scm)
-                    echo "SCM Checkout completed."
+                    echo "SCM Checkout completed." // チェックアウト完了メッセージ
                 }
             }
         }
         stage('Update Node List') {
             steps {
                 script {
+                    // 認証情報を使ってリモートリポジトリをフェッチし、デフォルトブランチのノードリストを取得
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         sh """
-                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
-                            git fetch origin
+                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')} // リモートURLを認証情報付きで更新
+                            git fetch origin // リモートリポジトリの最新情報をフェッチ
+                            git checkout ${env.DEFAULT_BRANCH} // デフォルトブランチをチェックアウト
                         """
                         def nodeListFiles = sh(script: """
                             git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "Jenkinsfile/node_list.txt" || true
                         """, returnStdout: true).trim()
                         if (nodeListFiles) {
-                            writeFile file: "node_list_files.txt", text: nodeListFiles
-                            echo "Node list updated:\n${nodeListFiles}"
+                            writeFile file: "node_list_files.txt", text: nodeListFiles // ノードリストをファイルに保存
+                            echo "Node list updated:\n${nodeListFiles}" // 更新されたノードリストを表示
                         } else {
-                            echo "No node_list.txt found."
+                            echo "No node_list.txt found." // ノードリストが見つからない場合のメッセージ
                         }
                     }
                 }
@@ -53,19 +57,20 @@ pipeline {
         stage('Update Branch List') {
             steps {
                 script {
+                    // リモートリポジトリのブランチリストを取得
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         sh """
-                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
-                            git fetch origin
+                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')} // 認証付きリモートURLを設定
+                            git fetch origin // リモートリポジトリの最新情報をフェッチ
                         """
                         def branches = sh(script: """
-                            git branch -r | sed "s|origin/||" | grep -v "HEAD"
+                            git branch -r | sed "s|origin/||" | grep -v "HEAD" // リモートブランチ名から「origin/」を削除
                         """, returnStdout: true).trim()
                         if (branches) {
-                            writeFile file: "branches.txt", text: branches
-                            echo "Branch list updated:\n${branches}"
+                            writeFile file: "branches.txt", text: branches // ブランチリストをファイルに保存
+                            echo "Branch list updated:\n${branches}" // 更新されたブランチリストを表示
                         } else {
-                            echo "No branches found."
+                            echo "No branches found." // ブランチリストが見つからない場合のメッセージ
                         }
                     }
                 }
@@ -74,19 +79,21 @@ pipeline {
         stage('Update Python File List') {
             steps {
                 script {
+                    // デフォルトブランチのPythonファイルリストを取得
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         sh """
-                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
-                            git fetch origin
+                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')} // 認証付きリモートURLを設定
+                            git fetch origin // リモートリポジトリの最新情報をフェッチ
+                            git checkout ${env.DEFAULT_BRANCH} // デフォルトブランチをチェックアウト
                         """
                         def pyFiles = sh(script: """
                             git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true
                         """, returnStdout: true).trim()
                         if (pyFiles) {
-                            writeFile file: "python_files.txt", text: pyFiles
-                            echo "Python file list updated:\n${pyFiles}"
+                            writeFile file: "python_files.txt", text: pyFiles // Pythonファイルリストをファイルに保存
+                            echo "Python file list updated:\n${pyFiles}" // 更新されたPythonファイルリストを表示
                         } else {
-                            echo "No Python files found."
+                            echo "No Python files found." // Pythonファイルが見つからない場合のメッセージ
                         }
                     }
                 }
@@ -95,6 +102,7 @@ pipeline {
     }
     post {
         always {
+            // パイプライン終了時に生成されたファイルをアーカイブ
             archiveArtifacts artifacts: '*.txt', fingerprint: true
         }
     }

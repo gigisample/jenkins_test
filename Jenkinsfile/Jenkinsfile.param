@@ -1,0 +1,48 @@
+pipeline {
+    agent any
+    environment {
+        GIT_REPO = 'https://github.com/gigisample/jenkins_test.git'
+    }
+    stages {
+        stage('Update Node List') {
+            steps {
+                script {
+                    checkout([$class: 'GitSCM',
+                              branches: [[name: 'main']],
+                              userRemoteConfigs: [[url: env.GIT_REPO]],
+                              extensions: [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'node_list.txt']]]]])
+                    writeFile file: "nodes.txt", text: readFile('node_list.txt')
+                    echo "Node list updated."
+                }
+            }
+        }
+        stage('Update Branch List') {
+            steps {
+                script {
+                    def branches = sh(script: "git ls-remote --heads ${env.GIT_REPO} | awk '{print \$2}' | sed 's|refs/heads/||'", returnStdout: true).trim()
+                    writeFile file: "branches.txt", text: branches
+                    echo "Branch list updated."
+                }
+            }
+        }
+        stage('Update Python File List') {
+            steps {
+                script {
+                    checkout([$class: 'GitSCM',
+                              branches: [[name: 'main']],
+                              userRemoteConfigs: [[url: env.GIT_REPO]],
+                              extensions: [[$class: 'SparseCheckoutPaths', sparseCheckoutPaths: [[path: 'scripts/']]]]])
+                    def files = sh(script: "find scripts/ -type f", returnStdout: true).trim()
+                    writeFile file: "python_files.txt", text: files
+                    echo "Python file list updated."
+                }
+            }
+        }
+    }
+    post {
+        always {
+            // アーティファクトとして保存
+            archiveArtifacts artifacts: '*.txt', fingerprint: true
+        }
+    }
+}

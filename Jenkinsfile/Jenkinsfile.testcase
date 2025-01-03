@@ -1,0 +1,85 @@
+pipeline {
+    agent { label "${params.NODE}" } // 選択されたノードで実行
+    parameters {
+        editableChoice(
+            name: 'NODE',
+            description: 'Select a node to run the job',
+            choices: getFileContentOrDefault('workspace/files/nodes.txt'), // ファイルから選択肢を取得、なければ空
+            restrict: false
+        )
+        editableChoice(
+            name: 'BRANCH',
+            description: 'Select a Git branch',
+            choices: getFileContentOrDefault('workspace/files/branches.txt'), // ファイルから選択肢を取得、なければ空
+            restrict: false
+        )
+        editableChoice(
+            name: 'PY_FILE',
+            description: 'Select a Python file to execute',
+            choices: getFileContentOrDefault('workspace/files/python_files.txt'), // ファイルから選択肢を取得、なければ空
+            restrict: false
+        )
+        editableChoice(
+            name: 'ARGS',
+            description: 'Enter arguments for the Python script',
+            choices: getFileContentOrDefault('workspace/files/args_history.txt'), // 過去の引数履歴、なければ空
+            restrict: false
+        )
+    }
+    environment {
+        OUTPUT_DIR = 'workspace/files' // 成果物を保存するローカルディレクトリ
+        GIT_REPO = 'https://github.com/your-repo/your-project.git'
+    }
+    stages {
+        stage('Fetch Artifacts') {
+            steps {
+                script {
+                    // ジョブBの成果物を取得
+                    copyArtifacts(
+                        projectName: 'JobB', // ジョブBの名前
+                        selector: lastSuccessful(),
+                        filter: '*.txt',
+                        target: OUTPUT_DIR
+                    )
+                    echo "Artifacts copied to ${env.OUTPUT_DIR}"
+                }
+            }
+        }
+        stage('Execute Python Script') {
+            steps {
+                script {
+                    // Pythonスクリプト実行
+                    def command = "python3 ${params.PY_FILE} ${params.ARGS}"
+                    echo "Executing: ${command}"
+                    sh command
+                }
+            }
+        }
+        stage('Save Arguments') {
+            steps {
+                script {
+                    // 入力された引数を保存
+                    def argsFile = "${env.OUTPUT_DIR}/args_history.txt"
+                    if (!fileExists(argsFile)) {
+                        writeFile file: argsFile, text: "${params.ARGS}\n"
+                    } else {
+                        def argsHistory = readFile(argsFile).split('\n')
+                        if (!argsHistory.contains(params.ARGS)) {
+                            writeFile file: argsFile, text: "${readFile(argsFile)}${params.ARGS}\n"
+                        }
+                    }
+                    echo "Arguments saved to ${argsFile}"
+                }
+            }
+        }
+    }
+}
+
+// ファイルを読み込む、存在しない場合は空文字列を返す
+def getFileContentOrDefault(filePath) {
+    try {
+        return readFileFromWorkspace(filePath).trim()
+    } catch (Exception e) {
+        return '' // ファイルが存在しない場合、空の選択肢を返す
+    }
+}

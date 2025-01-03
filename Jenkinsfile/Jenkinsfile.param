@@ -8,10 +8,12 @@ pipeline {
         stage('Get Default Branch') {
             steps {
                 script {
-                    // デフォルトブランチを動的に取得
                     env.DEFAULT_BRANCH = sh(script: """
-                        git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'
+                        git ls-remote --symref ${env.GIT_REPO} HEAD | grep "^ref:" | sed "s@^ref: refs/heads/@@;s@\\sHEAD\$@@"
                     """, returnStdout: true).trim()
+                    if (!env.DEFAULT_BRANCH) {
+                        error "Failed to determine the default branch."
+                    }
                     echo "Default branch is: ${env.DEFAULT_BRANCH}"
                 }
             }
@@ -28,7 +30,7 @@ pipeline {
             steps {
                 script {
                     def nodeListFiles = sh(script: """
-                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep 'Jenkinsfile/node_list.txt' || true
+                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "Jenkinsfile/node_list.txt" || true
                     """, returnStdout: true).trim()
                     if (nodeListFiles) {
                         writeFile file: "node_list_files.txt", text: nodeListFiles
@@ -43,7 +45,7 @@ pipeline {
             steps {
                 script {
                     def branches = sh(script: """
-                        git branch -r | sed 's|origin/||' | grep -v 'HEAD'
+                        git branch -r | sed "s|origin/||" | grep -v "HEAD"
                     """, returnStdout: true).trim()
                     if (branches) {
                         writeFile file: "branches.txt", text: branches
@@ -58,7 +60,7 @@ pipeline {
             steps {
                 script {
                     def pyFiles = sh(script: """
-                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep 'src/testcase/.*\\.py' || true
+                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true
                     """, returnStdout: true).trim()
                     if (pyFiles) {
                         writeFile file: "python_files.txt", text: pyFiles

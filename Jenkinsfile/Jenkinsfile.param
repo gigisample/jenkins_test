@@ -32,6 +32,7 @@ pipeline {
         stage('Update Node List') {
             steps {
                 script {
+                    sh "git fetch --all"
                     def nodeListFiles = sh(script: """
                         git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "Jenkinsfile/node_list.txt" || true
                     """, returnStdout: true).trim()
@@ -47,6 +48,7 @@ pipeline {
         stage('Update Branch List') {
             steps {
                 script {
+                    sh "git fetch --all"
                     def branches = sh(script: """
                         git branch -r | sed "s|origin/||" | grep -v "HEAD"
                     """, returnStdout: true).trim()
@@ -62,6 +64,7 @@ pipeline {
         stage('Update Python File List') {
             steps {
                 script {
+                    sh "git fetch --all"
                     def pyFiles = sh(script: """
                         git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true
                     """, returnStdout: true).trim()

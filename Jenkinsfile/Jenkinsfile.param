@@ -94,8 +94,8 @@ pipeline {
     }
     post {
         always {
-            // 生成されたファイルをアーカイブ
-            archiveArtifacts artifacts: '*.txt', fingerprint: true
+            // 必要なファイルのみをアーカイブ
+            archiveArtifacts artifacts: 'node_list_files.txt, branches.txt, python_files.txt', fingerprint: true
         }
     }
 }

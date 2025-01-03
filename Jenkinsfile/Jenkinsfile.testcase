@@ -1,54 +1,35 @@
 pipeline {
-    agent { label "${params.NODE}" } // 選択されたノードで実行
+    agent { label "${params.NODE}" }
     parameters {
         editableChoice(
             name: 'NODE',
             description: 'Select a node to run the job',
-            choices: getFileContentOrDefault('workspace/files/nodes.txt'), // ファイルから選択肢を取得、なければ空
+            choices: getFileContentAsList('/var/jenkins_home/shared_files/nodes.txt'), // 共有ディレクトリを参照
             restrict: false
         )
         editableChoice(
             name: 'BRANCH',
             description: 'Select a Git branch',
-            choices: getFileContentOrDefault('workspace/files/branches.txt'), // ファイルから選択肢を取得、なければ空
+            choices: getFileContentAsList('/var/jenkins_home/shared_files/branches.txt'),
             restrict: false
         )
         editableChoice(
             name: 'PY_FILE',
             description: 'Select a Python file to execute',
-            choices: getFileContentOrDefault('workspace/files/python_files.txt'), // ファイルから選択肢を取得、なければ空
+            choices: getFileContentAsList('/var/jenkins_home/shared_files/python_files.txt'),
             restrict: false
         )
         editableChoice(
             name: 'ARGS',
             description: 'Enter arguments for the Python script',
-            choices: getFileContentOrDefault('workspace/files/args_history.txt'), // 過去の引数履歴、なければ空
+            choices: getFileContentAsList('/var/jenkins_home/shared_files/args_history.txt'),
             restrict: false
         )
     }
-    environment {
-        OUTPUT_DIR = 'workspace/files' // 成果物を保存するローカルディレクトリ
-        GIT_REPO = 'https://github.com/your-repo/your-project.git'
-    }
     stages {
-        stage('Fetch Artifacts') {
-            steps {
-                script {
-                    // ジョブBの成果物を取得
-                    copyArtifacts(
-                        projectName: 'JobB', // ジョブBの名前
-                        selector: lastSuccessful(),
-                        filter: '*.txt',
-                        target: OUTPUT_DIR
-                    )
-                    echo "Artifacts copied to ${env.OUTPUT_DIR}"
-                }
-            }
-        }
         stage('Execute Python Script') {
             steps {
                 script {
-                    // Pythonスクリプト実行
                     def command = "python3 ${params.PY_FILE} ${params.ARGS}"
                     echo "Executing: ${command}"
                     sh command
@@ -58,8 +39,7 @@ pipeline {
         stage('Save Arguments') {
             steps {
                 script {
-                    // 入力された引数を保存
-                    def argsFile = "${env.OUTPUT_DIR}/args_history.txt"
+                    def argsFile = '/var/jenkins_home/shared_files/args_history.txt'
                     if (!fileExists(argsFile)) {
                         writeFile file: argsFile, text: "${params.ARGS}\n"
                     } else {
@@ -75,12 +55,11 @@ pipeline {
     }
 }
 
-// ファイルを読み込む、存在しない場合は空文字列を返す
-def getFileContentOrDefault(filePath) {
+// ファイルを読み込んでリストとして返す
+def getFileContentAsList(filePath) {
     try {
-        // ワークスペースからファイルを読み取る
-        return readFile(filePath).trim()
+        return readFile(filePath).split('\n') // 改行で分割してリストに変換
     } catch (Exception e) {
-        return '' // ファイルが存在しない場合、空の選択肢を返す
+        return [] // ファイルが存在しない場合、空のリストを返す
     }
 }

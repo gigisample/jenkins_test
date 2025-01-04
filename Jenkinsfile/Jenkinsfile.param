@@ -1,19 +1,23 @@
 pipeline {
     agent any
     environment {
-        GIT_REPO = scm.getUserRemoteConfigs()[0].getUrl() // リポジトリURLを取得
-        CREDS_ID = scm.getUserRemoteConfigs()[0].getCredentialsId() // credentialsIdを取得
+        GIT_REPO = scm.getUserRemoteConfigs()[0].getUrl()        // リポジトリURL
+        CREDS_ID = scm.getUserRemoteConfigs()[0].getCredentialsId() // credentialsId
     }
+
+    // Jenkinsfile 内で共通的に使う関数を定義
+    // （※ Jenkins のバージョンや設定によっては pipeline ブロックの外に置く必要がある場合もあります）
     stages {
         stage('Get Default Branch') {
             steps {
                 script {
-                    // デフォルトブランチを取得
+                    // リポジトリのデフォルトブランチ名を取得
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         env.DEFAULT_BRANCH = sh(script: """
                             git ls-remote --symref https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')} HEAD \
                             | grep "^ref:" | sed "s@^ref: refs/heads/@@;s@\\sHEAD@@"
                         """, returnStdout: true).trim()
+
                         if (!env.DEFAULT_BRANCH) {
                             error "Failed to determine the default branch."
                         }
@@ -22,19 +26,13 @@ pipeline {
                 }
             }
         }
-        stage('SCM Checkout') {
+
+        stage('Prepare Repo') {
             steps {
                 script {
-                    // リポジトリをチェックアウト
-                    checkout(scm)
-                    echo "SCM Checkout completed."
-                }
-            }
-        }
-        stage('Update Node List') {
-            steps {
-                script {
-                    // ノードリストの内容を取得
+                    // リポジトリをチェックアウトして最新化
+                    checkout(scm) // Jenkins のデフォルト機能で一旦チェックアウト
+
                     withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
                         sh """
                             git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
@@ -42,61 +40,54 @@ pipeline {
                             git checkout ${env.DEFAULT_BRANCH}
                             git pull
                         """
-                        def nodeListContent = sh(script: """
-                            if [ -f Jenkinsfile/node_list.txt ]; then
-                                cat Jenkinsfile/node_list.txt
-                            else
-                                echo "No node list found."
-                            fi
-                        """, returnStdout: true).trim()
-                        writeFile file: "node_list.txt", text: nodeListContent // ノードリストの内容を保存
-                        echo "Node list updated:\n${nodeListContent}"
                     }
+                    echo "Repository prepared on branch: ${env.DEFAULT_BRANCH}"
                 }
             }
         }
-        stage('Update Branch List') {
+
+        stage('Collect Info') {
             steps {
                 script {
-                    // ブランチリストの取得と整形
-                    withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-                        sh """
-                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
-                            git fetch origin
-                        """
-                        def branches = sh(script: """
-                            git branch -r | sed "s|origin/||" | grep -v "HEAD" | sed 's/^ *//;s/ *\$//'
-                        """, returnStdout: true).trim()
-                        writeFile file: "branches.txt", text: branches // 整形済みのブランチリストを保存
-                        echo "Branch list updated:\n${branches}"
-                    }
-                }
-            }
-        }
-        stage('Update Python File List') {
-            steps {
-                script {
-                    // Pythonファイルリストの取得
-                    withCredentials([usernamePassword(credentialsId: env.CREDS_ID, usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {
-                        sh """
-                            git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
-                            git fetch origin
-                            git checkout ${env.DEFAULT_BRANCH}
-                            git pull
-                        """
-                        def pyFiles = sh(script: """
-                            git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true
-                        """, returnStdout: true).trim()
-                        writeFile file: "python_files.txt", text: pyFiles // Pythonファイルリストを保存
-                        echo "Python file list updated:\n${pyFiles}"
-                    }
+                    // Node List 取得
+                    def nodeListContent = sh(script: '''
+                        if [ -f Jenkinsfile/node_list.txt ]; then
+                            cat Jenkinsfile/node_list.txt
+                        else
+                            echo "No node list found."
+                        fi
+                    ''', returnStdout: true).trim()
+                    writeFile file: "node_list.txt", text: nodeListContent
+
+                    // Branch List 取得
+                    def branches = sh(script: '''
+                        git branch -r | sed "s|origin/||" | grep -v "HEAD" | sed "s/^ *//;s/ *\$//"
+                    ''', returnStdout: true).trim()
+                    writeFile file: "branches.txt", text: branches
+
+                    // Python File List 取得
+                    def pyFiles = sh(script: """
+                        git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true
+                    """, returnStdout: true).trim()
+                    writeFile file: "python_files.txt", text: pyFiles
+
+                    echo """
+                    === Node List ===
+                    ${nodeListContent}
+
+                    === Branch List ===
+                    ${branches}
+
+                    === Python Files ===
+                    ${pyFiles}
+                    """
                 }
             }
         }
     }
     post {
         always {
-            // 必要なファイルのみをアーカイブ
+            // 取得したファイルのみをアーカイブ
             archiveArtifacts artifacts: 'node_list.txt, branches.txt, python_files.txt', fingerprint: true
         }
     }

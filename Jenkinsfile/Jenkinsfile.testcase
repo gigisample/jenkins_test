@@ -40,12 +40,13 @@ pipeline {
             steps {
                 script {
                     def argsFile = '/var/jenkins_home/workspace/jenkinsfile/testcase_execute/args_history.txt'
-                    if (!fileExists(argsFile)) {
+                    def file = new File(filePath)
+                    if (!file.exists(argsFile)) {
                         writeFile file: argsFile, text: "${params.ARGS}\n"
                     } else {
-                        def argsHistory = readFile(argsFile).readLines()
+                        def argsHistory = file.readLines()
                         if (!argsHistory.contains(params.ARGS)) {
-                            writeFile file: argsFile, text: "${readFile(argsFile)}${params.ARGS}\n"
+                            writeFile file: argsFile, text: "${argsHistory}\n${params.ARGS}"
                         }
                     }
                     echo "Arguments saved to ${argsFile}"
@@ -57,9 +58,9 @@ pipeline {
 
 // ファイルを読み込んでリストとして返す
 def getFileContentAsList(filePath) {
-    try {
-        return readFile(filePath).readLines() // 改行で分割してリストに変換
-    } catch (Exception e) {
-        return ["wanko"] // ファイルが存在しない場合、空のリストを返す
+    def file = new File(filePath)
+    if (!file.exists()) {
+        return ['Error: File not found'] // ファイルが見つからない場合のデフォルト値
     }
+    return file.readLines() // ファイルの各行をリストとして返す
 }

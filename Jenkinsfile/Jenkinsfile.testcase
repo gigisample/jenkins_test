@@ -60,6 +60,6 @@ def getFileContentAsList(filePath) {
     try {
         return readFile(filePath).readLines() // 改行で分割してリストに変換
     } catch (Exception e) {
-        return [] // ファイルが存在しない場合、空のリストを返す
+        return ["wanko"] // ファイルが存在しない場合、空のリストを返す
     }
 }

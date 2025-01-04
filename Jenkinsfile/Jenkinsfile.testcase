@@ -39,7 +39,7 @@ pipeline {
         stage('Save Arguments') {
             steps {
                 script {
-                    def argsFile = '/var/jenkins_home/jenkinsfile/testcase_execute/args_history.txt'
+                    def argsFile = '/var/jenkins_home/workspace/jenkinsfile/testcase_execute/args_history.txt'
                     if (!fileExists(argsFile)) {
                         writeFile file: argsFile, text: "${params.ARGS}\n"
                     } else {

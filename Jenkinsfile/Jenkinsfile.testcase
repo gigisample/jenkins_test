@@ -4,25 +4,25 @@ pipeline {
         editableChoice(
             name: 'NODE',
             description: 'Select a node to run the job',
-            choices: getFileContentAsList('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'), // 共有ディレクトリを参照
+            choices: getFileContentAsList('jenkinsfile/parameter_getter/node_list_files.txt'), // 相対パスに修正
             restrict: false
         )
         editableChoice(
             name: 'BRANCH',
             description: 'Select a Git branch',
-            choices: getFileContentAsList('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'),
+            choices: getFileContentAsList('jenkinsfile/parameter_getter/branches.txt'), // 修正
             restrict: false
         )
         editableChoice(
             name: 'PY_FILE',
             description: 'Select a Python file to execute',
-            choices: getFileContentAsList('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'),
+            choices: getFileContentAsList('jenkinsfile/parameter_getter/python_files.txt'), // 修正
             restrict: false
         )
         editableChoice(
             name: 'ARGS',
             description: 'Enter arguments for the Python script',
-            choices: getFileContentAsList('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'),
+            choices: getFileContentAsList('jenkinsfile/parameter_getter/args_history.txt'), // 修正
             restrict: false
         )
     }
@@ -39,14 +39,13 @@ pipeline {
         stage('Save Arguments') {
             steps {
                 script {
-                    def argsFile = '/var/jenkins_home/workspace/jenkinsfile/testcase_execute/args_history.txt'
-                    def file = new File(filePath)
-                    if (!file.exists(argsFile)) {
+                    def argsFile = 'jenkinsfile/testcase_execute/args_history.txt'
+                    if (!fileExists(argsFile)) {
                         writeFile file: argsFile, text: "${params.ARGS}\n"
                     } else {
-                        def argsHistory = file.readLines()
+                        def argsHistory = readFile(argsFile).readLines()
                         if (!argsHistory.contains(params.ARGS)) {
-                            writeFile file: argsFile, text: "${argsHistory}\n${params.ARGS}"
+                            writeFile file: argsFile, text: argsHistory.join('\n') + "\n${params.ARGS}\n"
                         }
                     }
                     echo "Arguments saved to ${argsFile}"
@@ -58,9 +57,13 @@ pipeline {
 
 // ファイルを読み込んでリストとして返す
 def getFileContentAsList(filePath) {
-    def file = new File(filePath)
-    if (!file.exists()) {
-        return ['Error: File not found'] // ファイルが見つからない場合のデフォルト値
+    try {
+        if (fileExists(filePath)) {
+            return readFile(filePath).readLines() // ファイルの各行をリストとして返す
+        } else {
+            return ['Error: File not found'] // ファイルが見つからない場合のデフォルト値
+        }
+    } catch (Exception e) {
+        return ["Error: ${e.message}"] // エラーが発生した場合のデフォルト値
     }
-    return file.readLines() // ファイルの各行をリストとして返す
 }

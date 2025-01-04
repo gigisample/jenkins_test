@@ -22,7 +22,7 @@ pipeline {
         editableChoice(
             name: 'ARGS',
             description: 'Enter arguments for the Python script',
-            choices: getChoicesWithinNode('/var/jenkins_home/workspace/jenkinsfile/testcase_execut/args_history.txt'),
+            choices: getChoicesWithinNode('/var/jenkins_home/workspace/jenkinsfile/testcase_execute/args_history.txt'),
             restrict: false
         )
     }

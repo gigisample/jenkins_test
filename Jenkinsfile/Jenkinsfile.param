@@ -48,7 +48,7 @@ pipeline {
                                 echo "No node list found."
                             fi
                         """, returnStdout: true).trim()
-                        writeFile file: "node_list_files.txt", text: nodeListContent // ノードリストの内容を保存
+                        writeFile file: "node_list.txt", text: nodeListContent // ノードリストの内容を保存
                         echo "Node list updated:\n${nodeListContent}"
                     }
                 }
@@ -95,7 +95,7 @@ pipeline {
     post {
         always {
             // 必要なファイルのみをアーカイブ
-            archiveArtifacts artifacts: 'node_list_files.txt, branches.txt, python_files.txt', fingerprint: true
+            archiveArtifacts artifacts: 'node_list.txt, branches.txt, python_files.txt', fingerprint: true
         }
     }
 }

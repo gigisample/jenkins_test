@@ -4,7 +4,7 @@ pipeline {
         editableChoice(
             name: 'NODE',
             description: 'Select a node to run the job',
-            choices: getChoicesWithinNode('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'), // node ブロック内でリストを取得
+            choices: getChoicesWithinNode('/var/jenkins_home/choices.txt'), // node ブロック内でリストを取得
             restrict: false
         )
         editableChoice(

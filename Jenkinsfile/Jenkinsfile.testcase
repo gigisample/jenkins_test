@@ -4,25 +4,25 @@ pipeline {
         editableChoice(
             name: 'NODE',
             description: 'Select a node to run the job',
-            choices: getFileContentAsList('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'), // 共有ディレクトリを参照
+            choices: getFileContentAsCommaSeparatedString('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'), // カンマ区切りの文字列を返す
             restrict: false
         )
         editableChoice(
             name: 'BRANCH',
             description: 'Select a Git branch',
-            choices: getFileContentAsList('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'),
+            choices: getFileContentAsCommaSeparatedString('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/branches.txt'), // 修正
             restrict: false
         )
         editableChoice(
             name: 'PY_FILE',
             description: 'Select a Python file to execute',
-            choices: getFileContentAsList('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'),
+            choices: getFileContentAsCommaSeparatedString('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/python_files.txt'), // 修正
             restrict: false
         )
         editableChoice(
             name: 'ARGS',
             description: 'Enter arguments for the Python script',
-            choices: getFileContentAsList('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'),
+            choices: getFileContentAsCommaSeparatedString('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/args_history.txt'), // 修正
             restrict: false
         )
     }
@@ -55,11 +55,11 @@ pipeline {
     }
 }
 
-// ファイルを読み込んでリストとして返す
-def getFileContentAsList(filePath) {
+// ファイルを読み込んでカンマ区切りの文字列として返す
+def getFileContentAsCommaSeparatedString(filePath) {
     try {
-        return readFile(filePath).split('\n') // 改行で分割してリストに変換
+        return readFile(filePath).split('\n').findAll { it.trim() }.join(',') // 改行で分割し、空行を除去してカンマ区切りに変換
     } catch (Exception e) {
-        return [] // ファイルが存在しない場合、空のリストを返す
+        return "" // ファイルが存在しない場合、空の文字列を返す
     }
 }

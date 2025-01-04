@@ -57,15 +57,17 @@ pipeline {
     }
 }
 
-// ファイルを読み込んでリストとして返す (node ブロック内で実行)
+// ファイルを読み込んでリストとして返す
 def getChoicesWithinNode(filePath) {
-    def choices = []
-    node {
-        if (fileExists(filePath)) {
-            choices = readFile(filePath).readLines() // ファイルの各行をリストとして返す
-        } else {
-            choices = ['Error: File not found'] // ファイルが見つからない場合のデフォルト値
+    try {
+        node {
+            if (fileExists(filePath)) {
+                return readFile(filePath).readLines() // ファイルの各行をリストとして返す
+            } else {
+                return ['Error: File not found'] // ファイルが見つからない場合のデフォルト値
+            }
         }
+    } catch (Exception e) {
+        return ["Error: ${e.message}"] // エラーが発生した場合のデフォルト値
     }
-    return choices
 }

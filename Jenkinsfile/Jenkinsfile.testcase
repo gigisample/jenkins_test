@@ -43,7 +43,7 @@ pipeline {
                     if (!fileExists(argsFile)) {
                         writeFile file: argsFile, text: "${params.ARGS}\n"
                     } else {
-                        def argsHistory = readFile(argsFile).split('\n')
+                        def argsHistory = readFile(argsFile).readLines()
                         if (!argsHistory.contains(params.ARGS)) {
                             writeFile file: argsFile, text: "${readFile(argsFile)}${params.ARGS}\n"
                         }
@@ -58,7 +58,7 @@ pipeline {
 // ファイルを読み込んでリストとして返す
 def getFileContentAsList(filePath) {
     try {
-        return readFile(filePath).split('\n') // 改行で分割してリストに変換
+        return readFile(filePath).readLines() // 改行で分割してリストに変換
     } catch (Exception e) {
         return [] // ファイルが存在しない場合、空のリストを返す
     }

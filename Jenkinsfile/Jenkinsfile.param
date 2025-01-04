@@ -40,10 +40,11 @@ pipeline {
                             git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
                             git fetch origin
                             git checkout ${env.DEFAULT_BRANCH}
+                            git pull
                         """
                         def nodeListContent = sh(script: """
                             if [ -f Jenkinsfile/node_list.txt ]; then
-                                git show ${env.DEFAULT_BRANCH}:Jenkinsfile/node_list.txt
+                                cat Jenkinsfile/node_list.txt
                             else
                                 echo "No node list found."
                             fi
@@ -81,6 +82,7 @@ pipeline {
                             git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@${env.GIT_REPO.replace('https://', '')}
                             git fetch origin
                             git checkout ${env.DEFAULT_BRANCH}
+                            git pull
                         """
                         def pyFiles = sh(script: """
                             git ls-tree --name-only -r ${env.DEFAULT_BRANCH} | grep "src/testcase/.*\\.py" || true

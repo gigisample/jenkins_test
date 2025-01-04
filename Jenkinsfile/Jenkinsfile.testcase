@@ -4,19 +4,19 @@ pipeline {
         editableChoice(
             name: 'NODE',
             description: 'Select a node to run the job',
-            choices: getFileContentAsList('/var/jenkins_home/shared_files/nodes.txt'), // 共有ディレクトリを参照
+            choices: getFileContentAsList('/var/jenkins_home/job/jenkinsfile/job/parameter_getter/lastSuccessfulBuild/artifact/node_list_files.txt'), // 共有ディレクトリを参照
             restrict: false
         )
         editableChoice(
             name: 'BRANCH',
             description: 'Select a Git branch',
-            choices: getFileContentAsList('/var/jenkins_home/shared_files/branches.txt'),
+            choices: getFileContentAsList('/var/jenkins_home/job/jenkinsfile/job/parameter_getter/lastSuccessfulBuild/artifact/branches.txt'),
             restrict: false
         )
         editableChoice(
             name: 'PY_FILE',
             description: 'Select a Python file to execute',
-            choices: getFileContentAsList('/var/jenkins_home/shared_files/python_files.txt'),
+            choices: getFileContentAsList('/var/jenkins_home/job/jenkinsfile/job/parameter_getter/lastSuccessfulBuild/artifact/python_files.txt'),
             restrict: false
         )
         editableChoice(

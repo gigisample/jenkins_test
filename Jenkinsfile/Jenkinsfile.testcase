@@ -4,7 +4,7 @@ pipeline {
         editableChoice(
             name: 'NODE',
             description: 'Select a node to run the job',
-            choices: getChoicesWithinNode('/var/jenkins_home/choices.txt'), // node ブロック内でリストを取得
+            choices: getChoicesWithinNode('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list.txt'),
             restrict: false
         )
         editableChoice(
@@ -57,17 +57,20 @@ pipeline {
     }
 }
 
-// ファイルを読み込んでリストとして返す
+// ファイルを読み込んでリストとして返す(先頭を空文字列にする)
 def getChoicesWithinNode(filePath) {
     try {
         node {
             if (fileExists(filePath)) {
-                return readFile(filePath).readLines() // ファイルの各行をリストとして返す
+                // 先頭に空文字列を加えて返す
+                return [''] + readFile(filePath).readLines()
             } else {
-                return ['Error: File not found'] // ファイルが見つからない場合のデフォルト値
+                // ファイルが見つからない場合も、先頭に空文字列を加えて返す
+                return ['']
             }
         }
     } catch (Exception e) {
-        return ["Error: ${e.message}"] // エラーが発生した場合のデフォルト値
+        // エラー発生時も、先頭に空文字列を加えて返す
+        return ['']
     }
 }

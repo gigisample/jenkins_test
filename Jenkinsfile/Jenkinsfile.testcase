@@ -4,25 +4,25 @@ pipeline {
         editableChoice(
             name: 'NODE',
             description: 'Select a node to run the job',
-            choices: getChoicesWithinNode('jenkinsfile/parameter_getter/node_list_files.txt'), // node ブロック内でリストを取得
+            choices: getChoicesWithinNode('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/node_list_files.txt'), // node ブロック内でリストを取得
             restrict: false
         )
         editableChoice(
             name: 'BRANCH',
             description: 'Select a Git branch',
-            choices: getChoicesWithinNode('jenkinsfile/parameter_getter/branches.txt'),
+            choices: getChoicesWithinNode('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/branches.txt'),
             restrict: false
         )
         editableChoice(
             name: 'PY_FILE',
             description: 'Select a Python file to execute',
-            choices: getChoicesWithinNode('jenkinsfile/parameter_getter/python_files.txt'),
+            choices: getChoicesWithinNode('/var/jenkins_home/workspace/jenkinsfile/parameter_getter/python_files.txt'),
             restrict: false
         )
         editableChoice(
             name: 'ARGS',
             description: 'Enter arguments for the Python script',
-            choices: getChoicesWithinNode('jenkinsfile/parameter_getter/args_history.txt'),
+            choices: getChoicesWithinNode('/var/jenkins_home/workspace/jenkinsfile/testcase_execut/args_history.txt'),
             restrict: false
         )
     }
@@ -39,7 +39,7 @@ pipeline {
         stage('Save Arguments') {
             steps {
                 script {
-                    def argsFile = 'jenkinsfile/testcase_execute/args_history.txt'
+                    def argsFile = '/var/jenkins_home/workspace/jenkinsfile/testcase_execute/args_history.txt'
                     node {
                         if (!fileExists(argsFile)) {
                             writeFile file: argsFile, text: "${params.ARGS}\n"

@@ -42,8 +42,8 @@ pipeline {
                             git checkout ${env.DEFAULT_BRANCH}
                         """
                         def nodeListContent = sh(script: """
-                            if [ -f JENKINS_TEST/Jenkinsfile/node_list.txt ]; then
-                                cat JENKINS_TEST/Jenkinsfile/node_list.txt
+                            if [ -f Jenkinsfile/node_list.txt ]; then
+                                git show ${env.DEFAULT_BRANCH}:Jenkinsfile/node_list.txt
                             else
                                 echo "No node list found."
                             fi
